@@ -5,6 +5,7 @@ import Select from 'react-select';
 import { X, Plus } from 'lucide-react';
 import Portal from './Portal';
 import LoadingSpinner from './LoadingSpinner';
+import DeadlineSelector from './DeadlineSelector';
 import { taskSchema } from '../schemas/taskSchema';
 import { useTaskMutations } from '../hooks/useTasks';
 
@@ -21,38 +22,50 @@ const tagOptions = [
 export default function TaskFormModal({ isOpen, onClose, editingTask }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addTask, updateTask } = useTaskMutations();
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(taskSchema),
     defaultValues: {
       title: '',
       description: '',
-      tags: []
+      tags: [],
+      hasDeadline: false,
+      deadline: null,
     }
   });
   
   useEffect(() => {
     if (editingTask) {
+      const hasDeadlineValue = !!(editingTask.deadline);
       reset({
         title: editingTask.title,
         description: editingTask.description || '',
-        tags: editingTask.tags || []
+        tags: editingTask.tags || [],
+        hasDeadline: hasDeadlineValue,
+        deadline: editingTask.deadline ? new Date(editingTask.deadline) : null,
       });
     } else {
       reset({
         title: '',
         description: '',
-        tags: []
+        tags: [],
+        hasDeadline: false,
+        deadline: null,
       });
     }
-  }, [editingTask, reset]);
+  }, [editingTask, reset, isOpen]);
   
   const onFormSubmit = async (data) => {
     setIsSubmitting(true);
     try {
+      const taskData = {
+        ...data,
+        deadline: data.hasDeadline && data.deadline ? data.deadline.toISOString() : null,
+      };
+
       if (editingTask) {
-        await updateTask.mutateAsync({ id: editingTask.id, data });
+        await updateTask.mutateAsync({ id: editingTask.id, data: taskData });
       } else {
-        await addTask.mutateAsync(data);
+        await addTask.mutateAsync(taskData);
       }
       reset();
       onClose();
@@ -154,6 +167,14 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
         />
       </div>
       
+      <DeadlineSelector
+        control={control}
+        watch={watch}
+        setValue={setValue}
+        errors={errors}
+        isSubmitting={isSubmitting}
+      />
+
       <div className="flex gap-3 justify-end">
         <button
           onClick={onClose}

@@ -1,4 +1,4 @@
-import { Check, Trash2, Archive, ArchiveRestore, Edit } from 'lucide-react';
+import { Check, Trash2, Archive, Calendar, ArchiveRestore, Edit } from 'lucide-react';
 
 export default function TaskItem({ 
   task, 
@@ -9,6 +9,48 @@ export default function TaskItem({
   onEdit,
   isArchived 
 }) {
+  const formatDeadline = (deadline) => {
+    if (!deadline) return null;
+    const date = new Date(deadline);
+    const now = new Date();
+    
+    const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const nowOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const diffTime = dateOnly - nowOnly;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const dateStr = `${day}.${month}.${year}`;
+    
+    let label = '';
+    let color = '';
+    
+    if (diffDays < 0) {
+      const absDays = Math.abs(diffDays);
+      label = absDays === 1 ? '(overdue 1 day)' : `(overdue ${absDays} days)`;
+      color = 'text-red-600 bg-red-50';
+    } else if (diffDays === 0) {
+      label = '(today)';
+      color = 'text-orange-600 bg-orange-50';
+    } else if (diffDays === 1) {
+      label = '(tomorrow)';
+      color = 'text-yellow-600 bg-yellow-50';
+    } else if (diffDays <= 7) {
+      label = `(${diffDays} days)`;
+      color = 'text-blue-600 bg-blue-50';
+    } else {
+      label = '';
+      color = 'text-gray-600 bg-gray-50';
+    }
+    
+    return { text: `${dateStr} ${label}`.trim(), color };
+  };
+
+  const deadlineInfo = task.deadline ? formatDeadline(task.deadline) : null;
+
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-3 flex items-start gap-3">
       <button
@@ -27,18 +69,27 @@ export default function TaskItem({
         {task.description && (
           <p className="text-gray-600 text-sm mt-1">{task.description}</p>
         )}
-        {task.tags && task.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {task.tags.map((tag) => (
-              <span
-                key={tag.value}
-                className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full"
-              >
-                {tag.label}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2 mt-2 items-center">
+          {task.tags && task.tags.length > 0 && (
+            <>
+              {task.tags.map((tag) => (
+                <span
+                  key={tag.value}
+                  className="px-2 py-1 bg-teal-100 text-teal-700 text-xs rounded-full"
+                >
+                  {tag.label}
+                </span>
+              ))}
+            </>
+          )}
+          
+          {deadlineInfo && (
+            <span className={`px-2 py-1 text-xs rounded-full flex items-center gap-1 ${deadlineInfo.color}`}>
+              <Calendar size={12} />
+              {deadlineInfo.text}
+            </span>
+          )}
+        </div>
       </div>
       
       <div className="flex gap-1">

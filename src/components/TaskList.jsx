@@ -12,16 +12,9 @@ export default function TaskList({ isArchived, onEditTask }) {
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', taskId: null });
   const setTaskCount = useTaskStore((state) => state.setTaskCount);
   
-  // Debounce search input
   const debouncedSearch = useDebounce(search, 2000);
-  
-  // Fetch tasks with React Query
   const { data: taskList = [], isLoading } = useTasks(debouncedSearch, isArchived);
-  
-  // Get mutations
   const { toggleTask, deleteTask, archiveTask, unarchiveTask } = useTaskMutations();
-  
-  // Optimistic state for immediate UI updates
   const [optimisticTasks, setOptimisticTasks] = useOptimistic(
     taskList,
     (currentTasks, updatedTask) => {
@@ -58,14 +51,12 @@ export default function TaskList({ isArchived, onEditTask }) {
     }
   );
   
-  // Update task count in Zustand
   const queryClient = useQueryClient();
   
   useEffect(() => {
     if (!isArchived) {
       setTaskCount(optimisticTasks.length);
     } else {
-      // Get active tasks count from cache or fetch
       const activeTasks = queryClient.getQueryData(['tasks', '', false]);
       if (activeTasks) {
         setTaskCount(activeTasks.length);
@@ -74,15 +65,11 @@ export default function TaskList({ isArchived, onEditTask }) {
   }, [optimisticTasks, isArchived, setTaskCount, queryClient]);
   
   const handleToggle = async (id) => {
-    // Optimistic update
     setOptimisticTasks({ type: 'toggle', taskId: id });
     
-    // Actual mutation
     try {
       await toggleTask.mutateAsync(id);
     } catch (error) {
-      // If mutation fails, the optimistic update will be reverted automatically
-      // when the React Query cache updates and the component re-renders
       console.error('Failed to toggle task:', error);
     }
   };
@@ -102,7 +89,6 @@ export default function TaskList({ isArchived, onEditTask }) {
   const confirmAction = async () => {
     const { taskId, type } = modalConfig;
     
-    // Optimistic update based on action type
     if (type === 'delete') {
       setOptimisticTasks({ type: 'delete', taskId });
     } else if (type === 'archive') {
@@ -111,7 +97,6 @@ export default function TaskList({ isArchived, onEditTask }) {
       setOptimisticTasks({ type: 'unarchive', taskId });
     }
     
-    // Actual mutation
     try {
       if (type === 'delete') {
         await deleteTask.mutateAsync(taskId);
@@ -122,8 +107,6 @@ export default function TaskList({ isArchived, onEditTask }) {
       }
     } catch (error) {
       console.error(`Failed to ${type} task:`, error);
-      // The optimistic update will be automatically reverted when React Query
-      // refetches the data and the component re-renders
     }
     
     setModalConfig({ isOpen: false, type: '', taskId: null });

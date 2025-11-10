@@ -5,7 +5,8 @@ let tasks = [
     description: 'Master React hooks', 
     completed: false, 
     archived: false,
-    tags: [{ value: 'learning', label: 'Learning' }, { value: 'react', label: 'React' }]
+    tags: [{ value: 'learning', label: 'Learning' }, { value: 'react', label: 'React' }],
+    deadline: new Date(Date.now() + 2 * 24 *60 *60 * 1000).toISOString()
   },
   { 
     id: 2, 
@@ -13,7 +14,8 @@ let tasks = [
     description: 'Complete project', 
     completed: false, 
     archived: false,
-    tags: [{ value: 'project', label: 'Project' }]
+    tags: [{ value: 'project', label: 'Project' }],
+    deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
   },
   { 
     id: 3, 
@@ -21,7 +23,8 @@ let tasks = [
     description: 'State management', 
     completed: true, 
     archived: false,
-    tags: [{ value: 'learning', label: 'Learning' }]
+    tags: [{ value: 'learning', label: 'Learning' }],
+    deadline: null
   },
 ];
 
@@ -54,7 +57,7 @@ export const mockAPI = {
         };
         tasks.push(newTask);
         resolve(newTask);
-      }, 1000); // 1 second delay to see loading spinner
+      }, 1000);
     });
   },
   
@@ -67,7 +70,7 @@ export const mockAPI = {
           resolve(tasks[taskIndex]);
         }
         resolve(null);
-      }, 1000); // 1 second delay to see loading spinner
+      }, 1000);
     });
   },
   

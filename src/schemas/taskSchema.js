@@ -6,5 +6,18 @@ export const taskSchema = z.object({
   tags: z.array(z.object({
     value: z.string(),
     label: z.string()
-  })).optional()
-});
+  })).optional(),
+  hasDeadline: z.boolean().optional(),
+  deadline: z.date().nullable().optional(),
+}).refine(
+  (data) => {
+    if (data.hasDeadline && !data.deadline) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: 'Please select a deadline date',
+    path: ['deadline'],
+  }
+);

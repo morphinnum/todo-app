@@ -1,4 +1,4 @@
-import { useState, useEffect, useOptimistic } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, X } from 'lucide-react';
 import TaskItem from './TaskItem';
@@ -11,110 +11,66 @@ export default function TaskList({ isArchived, onEditTask }) {
   const [search, setSearch] = useState('');
   const [modalConfig, setModalConfig] = useState({ isOpen: false, type: '', taskId: null });
   const setTaskCount = useTaskStore((state) => state.setTaskCount);
+  const [isPending, startTransition] = useTransition();
   
   const debouncedSearch = useDebounce(search, 2000);
   const { data: taskList = [], isLoading } = useTasks(debouncedSearch, isArchived);
   const { toggleTask, deleteTask, archiveTask, unarchiveTask } = useTaskMutations();
-  const [optimisticTasks, setOptimisticTasks] = useOptimistic(
-    taskList,
-    (currentTasks, updatedTask) => {
-      const { type, taskId } = updatedTask;
-      
-      switch (type) {
-        case 'toggle':
-          return currentTasks.map(task =>
-            task.id === taskId 
-              ? { ...task, completed: !task.completed }
-              : task
-          );
-        
-        case 'delete':
-          return currentTasks.filter(task => task.id !== taskId);
-        
-        case 'archive':
-          return currentTasks.map(task =>
-            task.id === taskId 
-              ? { ...task, archived: true }
-              : task
-          );
-        
-        case 'unarchive':
-          return currentTasks.map(task =>
-            task.id === taskId 
-              ? { ...task, archived: false }
-              : task
-          );
-        
-        default:
-          return currentTasks;
-      }
-    }
-  );
   
   const queryClient = useQueryClient();
   
   useEffect(() => {
     if (!isArchived) {
-      setTaskCount(optimisticTasks.length);
+      setTaskCount(taskList.length);
     } else {
       const activeTasks = queryClient.getQueryData(['tasks', '', false]);
       if (activeTasks) {
         setTaskCount(activeTasks.length);
       }
     }
-  }, [optimisticTasks, isArchived, setTaskCount, queryClient]);
+  }, [taskList, isArchived, setTaskCount, queryClient]);
   
-  const handleToggle = async (id) => {
-    setOptimisticTasks({ type: 'toggle', taskId: id });
-    
-    try {
-      await toggleTask.mutateAsync(id);
-    } catch (error) {
-      console.error('Failed to toggle task:', error);
-    }
-  };
-  
-  const handleDelete = (id) => {
-    setModalConfig({ isOpen: true, type: 'delete', taskId: id });
-  };
-  
-  const handleArchive = (id) => {
-    setModalConfig({ isOpen: true, type: 'archive', taskId: id });
-  };
+  const handleToggle = useCallback((id) => {
+    startTransition(() => {
+      toggleTask.mutate(id);
+    });
+  }, [toggleTask]);
 
-  const handleUnarchive = (id) => {
+  const handleDelete = useCallback((id) => {
+    setModalConfig({ isOpen: true, type: 'delete', taskId: id });
+  }, []);
+
+  const handleArchive = useCallback((id) => {
+    setModalConfig({ isOpen: true, type: 'archive', taskId: id });
+  }, []);
+
+  const handleUnarchive = useCallback((id) => {
     setModalConfig({ isOpen: true, type: 'unarchive', taskId: id });
-  };
+  }, []);
   
   const confirmAction = async () => {
     const { taskId, type } = modalConfig;
     
-    if (type === 'delete') {
-      setOptimisticTasks({ type: 'delete', taskId });
-    } else if (type === 'archive') {
-      setOptimisticTasks({ type: 'archive', taskId });
-    } else if (type === 'unarchive') {
-      setOptimisticTasks({ type: 'unarchive', taskId });
-    }
-    
-    try {
-      if (type === 'delete') {
-        await deleteTask.mutateAsync(taskId);
-      } else if (type === 'archive') {
-        await archiveTask.mutateAsync(taskId);
-      } else if (type === 'unarchive') {
-        await unarchiveTask.mutateAsync(taskId);
+    startTransition(async () => {
+      try {
+        if (type === 'delete') {
+          await deleteTask.mutateAsync(taskId);
+        } else if (type === 'archive') {
+          await archiveTask.mutateAsync(taskId);
+        } else if (type === 'unarchive') {
+          await unarchiveTask.mutateAsync(taskId);
+        }
+      } catch (error) {
+        console.error(`Failed to ${type} task:`, error);
       }
-    } catch (error) {
-      console.error(`Failed to ${type} task:`, error);
-    }
+    });
     
     setModalConfig({ isOpen: false, type: '', taskId: null });
   };
   
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearch('');
-  };
+  }, []);
   
   return (
     <div className="container bg-white mx-auto px-4 py-6 max-w-4xl">
@@ -144,14 +100,14 @@ export default function TaskList({ isArchived, onEditTask }) {
         </div>
       </div>
       
-      {isLoading ? (
+      {isLoading || isPending ? (
         <div className="text-center py-8 text-gray-500">Loading...</div>
-      ) : optimisticTasks.length === 0 ? (
+      ) : taskList.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           {search ? 'No tasks found' : isArchived ? 'No archived tasks' : 'No tasks yet. Click the + button to add one!'}
         </div>
       ) : (
-        optimisticTasks.map((task) => (
+        taskList.map((task) => (
           <TaskItem
             key={task.id}
             task={task}

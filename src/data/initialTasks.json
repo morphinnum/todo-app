@@ -1,0 +1,39 @@
+[
+  {
+    "id": 1,
+    "title": "Learn React",
+    "description": "Master React hooks",
+    "completed": false,
+    "archived": false,
+    "tags": [
+      { "value": "learning", "label": "Learning" },
+      { "value": "react", "label": "React" }
+    ],
+    "deadline": "2025-11-14T12:00:00.000Z",
+    "createdAt": "2025-11-07T12:00:00.000Z"
+  },
+  {
+    "id": 2,
+    "title": "Build ToDo App",
+    "description": "Complete project",
+    "completed": false,
+    "archived": false,
+    "tags": [
+      { "value": "project", "label": "Project" }
+    ],
+    "deadline": "2025-11-13T12:00:00.000Z",
+    "createdAt": "2025-11-09T12:00:00.000Z"
+  },
+  {
+    "id": 3,
+    "title": "Study Zustand",
+    "description": "State management",
+    "completed": true,
+    "archived": false,
+    "tags": [
+      { "value": "learning", "label": "Learning" }
+    ],
+    "deadline": null,
+    "createdAt": "2025-11-05T12:00:00.000Z"
+  }
+]

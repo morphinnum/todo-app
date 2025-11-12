@@ -165,6 +165,9 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
             />
           )}
         />
+        {errors.tags && (
+          <p className="text-red-500 text-sm mt-1">{errors.tags.message}</p>
+        )}
       </div>
       
       <DeadlineSelector

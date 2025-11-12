@@ -1,10 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mockAPI } from '../api/mockAPI';
+import { taskService } from '../services/taskService';
 
 export function useTasks(search = '', isArchived = false) {
   return useQuery({
     queryKey: ['tasks', search, isArchived],
-    queryFn: () => mockAPI.getTasks(search, isArchived),
+    queryFn: () => taskService.getTasks({ search, archived: isArchived }),
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -12,8 +15,31 @@ export function useTaskMutations() {
   const queryClient = useQueryClient();
 
   const toggleTask = useMutation({
-    mutationFn: mockAPI.toggleTask,
-    onSuccess: () => {
+    mutationFn: taskService.toggleTaskCompletion,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['tasks'] });
+      
+      const previousTasks = queryClient.getQueriesData({ queryKey: ['tasks'] });
+      
+      queryClient.setQueriesData({ queryKey: ['tasks'] }, (old) => {
+        if (!old) return old;
+        return old.map(task => 
+          task.id === id ? { ...task, completed: !task.completed } : task
+        );
+      });
+      
+      return { previousTasks };
+    },
+
+    onError: (err, variables, context) => {
+      if (context?.previousTasks) {
+        context.previousTasks.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });

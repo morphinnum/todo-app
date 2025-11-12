@@ -6,7 +6,10 @@ export const taskSchema = z.object({
   tags: z.array(z.object({
     value: z.string(),
     label: z.string()
-  })).optional(),
+  }))
+  .min(1, 'Please select at least one tag')
+  .max(3, 'Maximum 3 tags allowed')
+  .optional(),
   hasDeadline: z.boolean().optional(),
   deadline: z.date().nullable().optional(),
 }).refine(

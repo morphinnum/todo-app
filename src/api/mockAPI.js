@@ -1,32 +1,6 @@
-let tasks = [
-  { 
-    id: 1, 
-    title: 'Learn React', 
-    description: 'Master React hooks', 
-    completed: false, 
-    archived: false,
-    tags: [{ value: 'learning', label: 'Learning' }, { value: 'react', label: 'React' }],
-    deadline: new Date(Date.now() + 2 * 24 *60 *60 * 1000).toISOString()
-  },
-  { 
-    id: 2, 
-    title: 'Build ToDo App', 
-    description: 'Complete project', 
-    completed: false, 
-    archived: false,
-    tags: [{ value: 'project', label: 'Project' }],
-    deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() 
-  },
-  { 
-    id: 3, 
-    title: 'Study Zustand', 
-    description: 'State management', 
-    completed: true, 
-    archived: false,
-    tags: [{ value: 'learning', label: 'Learning' }],
-    deadline: null
-  },
-];
+import initialTasksData from '../data/initialTasks.json';
+
+let tasks = [...initialTasksData];
 
 export const mockAPI = {
   getTasks: (search = '', archived = false) => {

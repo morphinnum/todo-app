@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, AlertCircle } from 'lucide-react';
 import Portal from './Portal';
 import LoadingSpinner from './LoadingSpinner';
 import DeadlineSelector from './DeadlineSelector';
-import { taskSchema } from '../schemas/taskSchema';
-import { useTaskMutations } from '../hooks/useTasks';
+import { createTaskSchemaWithDuplicateCheck } from '../schemas/taskSchema';
+import { useTaskMutations, useTasks } from '../hooks/useTasks';
 
 const tagOptions = [
   { value: 'work', label: 'Work' },
@@ -21,9 +21,16 @@ const tagOptions = [
 
 export default function TaskFormModal({ isOpen, onClose, editingTask }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState(null);
   const { addTask, updateTask } = useTaskMutations();
+  const { data: allTasks = [] } = useTasks('', false);
+  const taskSchemaWithValidation = createTaskSchemaWithDuplicateCheck(
+    allTasks, 
+    editingTask?.id
+  );
+  
   const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = useForm({
-    resolver: zodResolver(taskSchema),
+    resolver: zodResolver(taskSchemaWithValidation),
     defaultValues: {
       title: '',
       description: '',
@@ -52,16 +59,19 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
         deadline: null,
       });
     }
+    setApiError(null);
   }, [editingTask, reset, isOpen]);
   
   const onFormSubmit = async (data) => {
     setIsSubmitting(true);
+    setApiError(null);
+    
     try {
       const taskData = {
         ...data,
         deadline: data.hasDeadline && data.deadline ? data.deadline.toISOString() : null,
       };
-
+      
       if (editingTask) {
         await updateTask.mutateAsync({ id: editingTask.id, data: taskData });
       } else {
@@ -71,6 +81,7 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
       onClose();
     } catch (error) {
       console.error('Error saving task:', error);
+      setApiError(error.message || 'Failed to save task. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -91,6 +102,13 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
         </button>
       </div>
       
+      {apiError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+          <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
+          <p className="text-red-600 text-sm">{apiError}</p>
+        </div>
+      )}
+      
       <div className="mb-3">
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Task Title *
@@ -101,9 +119,12 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
           className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-gray-200"
           autoFocus
           disabled={isSubmitting}
+          data-testid="task-title-input"
         />
         {errors.title && (
-          <p className="text-red-500 text-sm mt-1">{errors.title.message}</p>
+          <p className="text-red-500 text-sm mt-1" data-testid="title-error">
+            {errors.title.message}
+          </p>
         )}
       </div>
       
@@ -117,6 +138,7 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
           className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-1 focus:ring-gray-200"
           rows="3"
           disabled={isSubmitting}
+          data-testid="task-description-input"
         />
         {errors.description && (
           <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
@@ -169,7 +191,7 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
           <p className="text-red-500 text-sm mt-1">{errors.tags.message}</p>
         )}
       </div>
-      
+
       <DeadlineSelector
         control={control}
         watch={watch}
@@ -177,12 +199,13 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
         errors={errors}
         isSubmitting={isSubmitting}
       />
-
+      
       <div className="flex gap-3 justify-end">
         <button
           onClick={onClose}
           className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
           disabled={isSubmitting}
+          data-testid="cancel-button"
         >
           Cancel
         </button>
@@ -194,6 +217,7 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
               ? 'bg-teal-400 cursor-not-allowed'
               : 'bg-teal-600 hover:bg-teal-700 text-white'
           }`}
+          data-testid="submit-button"
         >
           {isSubmitting ? (
             <>
@@ -202,7 +226,7 @@ export default function TaskFormModal({ isOpen, onClose, editingTask }) {
             </>
           ) : (
             <>
-              {editingTask ? '' : <Plus size={20} />}
+              <Plus size={20} />
               {editingTask ? 'Update Task' : 'Add Task'}
             </>
           )}

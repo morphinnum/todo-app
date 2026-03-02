@@ -52,7 +52,7 @@ export default function TaskItem({
   const deadlineInfo = task.deadline ? formatDeadline(task.deadline) : null;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-3 flex items-start gap-3">
+    <div className="bg-white rounded-lg shadow p-4 mb-3 flex items-start gap-3" data-testid="task-item">
       <button
         onClick={() => onToggle(task.id)}
         className={`mt-1 flex-shrink-0 w-6 h-6 p-0 rounded border-0 flex items-center justify-center focus:outline-none ${

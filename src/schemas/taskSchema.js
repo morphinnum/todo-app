@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const taskSchema = z.object({
-  title: z.string().min(3, 'Task must be at least 3 characters').max(100, 'Task too long'),
+  title: z.string().min(3, 'Task must be at least 3 characters').max(100, 'Task too long').trim(),
   description: z.string().max(500, 'Description too long').optional(),
   tags: z.array(z.object({
     value: z.string(),
@@ -24,3 +24,20 @@ export const taskSchema = z.object({
     path: ['deadline'],
   }
 );
+
+export const createTaskSchemaWithDuplicateCheck = (existingTasks, editingTaskId = null) => {
+  return taskSchema.refine(
+    (data) => {
+      const isDuplicate = existingTasks.some(
+        task => 
+          task.title.toLowerCase() === data.title.toLowerCase() && 
+          task.id !== editingTaskId
+      );
+      return !isDuplicate;
+    },
+    {
+      message: 'A task with this title already exists',
+      path: ['title'],
+    }
+  );
+};
